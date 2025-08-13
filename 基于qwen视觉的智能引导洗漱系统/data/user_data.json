@@ -1,0 +1,32 @@
+{
+  "settings": {
+    "morning_time": "08:00",
+    "evening_time": "21:00",
+    "brush_duration": 120,
+    "volume": 0.8,
+    "difficulty": "normal"
+  },
+  "achievements": {
+    "total_brushes": 8,
+    "consecutive_days": 6,
+    "perfect_brushes": 8,
+    "badges": [
+      "初学者"
+    ]
+  },
+  "rating": {
+    "total_stars": 119,
+    "current_rank": {
+      "name": "青铜",
+      "min_stars": 50,
+      "color": "#CD7F32",
+      "icon": "🥉"
+    },
+    "consecutive_days": 2,
+    "last_brush_date": "2025-08-13",
+    "daily_bonus": 2,
+    "last_score": 100,
+    "last_earned_stars": 5,
+    "last_penalty_stars": 0
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "智能洗漱台系统",
+    "version": "1.0.0",
+    "window_size": [1200, 800],
+    "theme": {
+      "primary_color": "#4ECDC4",
+      "secondary_color": "#FFFFFF",
+      "accent_color": "#2C3E50",
+      "background_color": "#F8F9FA"
+    }
+  },
+  "mqtt": {
+    "broker": "192.168.10.181",
+    "port": 1883,
+    "username": "siot",
+    "password": "dfrobot",
+    "topics": {
+      "toothpaste": "siot/sp",
+      "status": "siot/hk"
+    }
+  },
+  "qwen": {
+    "api_key": "sk-5ae5e5b4e853487aac092031aa70de38",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "model": "qwen-vl-max-latest"
+  },
+  "camera": {
+    "device_id": 0,
+    "width": 640,
+    "height": 480,
+    "fps": 30,
+    "pose_detection": {
+      "enabled": true,
+      "model_path": "yolov11n-pose.pt",
+      "confidence_threshold": 0.5,
+      "show_keypoints": true,
+      "show_skeleton": true,
+      "keypoint_radius": 3,
+      "skeleton_thickness": 2
+    }
+  },
+  "brush_settings": {
+    "morning_time": "08:00",
+    "evening_time": "21:00",
+    "brush_duration": 120,
+    "brush_steps": [
+      "上左",
+      "上中", 
+      "上右",
+      "下左",
+      "下中",
+      "下右"
+    ],
+    "step_duration": 11,
+    "enable_custom_steps": true,
+    "custom_step_names": {
+      "上左": "上排左侧牙齿",
+      "上中": "上排中间牙齿", 
+      "上右": "上排右侧牙齿",
+      "下左": "下排左侧牙齿",
+      "下中": "下排中间牙齿",
+      "下右": "下排右侧牙齿"
+    },
+    "voice_prompts": {
+      "step_start": "现在刷{step}区域",
+      "step_reminder": "继续刷{step}，保持正确角度",
+      "countdown_10": "还有10秒",
+      "countdown_5": "5秒",
+      "weather_enabled": true
+    }
+  },
+  "audio": {
+    "volume": 0.8,
+    "voice_files": {
+      "reminder": "要刷牙咯",
+      "toothpaste_ready": "挤好牙膏，我们要开始刷牙咯",
+      "congratulations": "恭喜完成刷牙！"
+    }
+  },
+  "weather": {
+    "city": "东莞",
+    "api_key": "",
+    "update_interval": 300,
+    "backup_apis": [
+      "http://wthrcdn.etouch.cn/weather_mini?city={city}",
+      "https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=zh_cn"
+    ]
+  }
+}
