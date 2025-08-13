@@ -1,0 +1,1 @@
+{"title":"Git代码提交","features":["检查仓库状态","添加文件到暂存区","创建提交记录","推送到远程仓库"],"tech":{"version_control":"Git","tools":"Git CLI"},"design":"命令行操作流程","plan":{"检查Git仓库当前状态，查看所有修改和新增的文件":"holding","将所有修改和新增的文件添加到Git暂存区":"holding","创建提交记录，添加描述性的提交信息":"holding","推送代码到远程Git仓库":"holding","验证提交是否成功完成":"holding"}}
