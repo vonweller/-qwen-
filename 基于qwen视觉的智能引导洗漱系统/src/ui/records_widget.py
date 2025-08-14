@@ -128,18 +128,19 @@ class RecordsWidget(QWidget):
         
         # 创建表格
         self.records_table = QTableWidget()
-        self.records_table.setColumnCount(5)
+        self.records_table.setColumnCount(6)
         self.records_table.setHorizontalHeaderLabels([
-            "日期时间", "持续时长", "完成步骤", "评分", "状态"
+            "日期时间", "持续时长", "完成步骤", "评分", "状态", "QwenAI评价"
         ])
         
         # 设置表格属性
         header = self.records_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.Stretch)  # QwenAI评价列可拉伸
         
         self.records_table.setAlternatingRowColors(True)
         self.records_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -301,6 +302,21 @@ class RecordsWidget(QWidget):
             status_item = QTableWidgetItem(status)
             status_item.setForeground(status_color)
             self.records_table.setItem(row, 4, status_item)
+            
+            # QwenAI评价
+            comprehensive_advice = record.get('comprehensive_advice', '暂无评价')
+            advice_item = QTableWidgetItem(comprehensive_advice)
+            advice_item.setToolTip(comprehensive_advice)  # 鼠标悬停显示完整内容
+            
+            # 根据评价内容设置颜色
+            if '很好' in comprehensive_advice or '完美' in comprehensive_advice:
+                advice_item.setForeground(QColor(76, 175, 80))  # 绿色
+            elif '需要加油' in comprehensive_advice or '提升空间' in comprehensive_advice:
+                advice_item.setForeground(QColor(244, 67, 54))  # 红色
+            else:
+                advice_item.setForeground(QColor(255, 193, 7))  # 黄色
+                
+            self.records_table.setItem(row, 5, advice_item)
             
     def setup_style(self):
         """设置样式"""
