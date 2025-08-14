@@ -11,6 +11,7 @@ from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
 from src.utils.config_manager import ConfigManager
 from src.core.yolo_pose_detector import YOLOPoseDetector
+from src.ui.hand_face_coverage_widget import draw_coverage_visualization_on_frame
 
 class CameraWidget(QWidget):
     """摄像头显示组件"""
@@ -261,10 +262,14 @@ class CameraWidget(QWidget):
                             self.pose_results = pose_results
                             display_frame = annotated_frame
                             
-                            # 发送姿态检测信号
+                            # 发送姿态检测信号并绘制覆盖检测结果
                             if pose_results:
                                 for pose_data in pose_results:
                                     pose_analysis = self.pose_detector.get_pose_analysis(pose_data['keypoints'])
+                                    
+                                    # 绘制手掌-脸部覆盖检测可视化
+                                    display_frame = draw_coverage_visualization_on_frame(display_frame, pose_analysis)
+                                    
                                     self.pose_detected.emit(pose_analysis)
                         except Exception as e:
                             print(f"姿态检测出错: {e}")

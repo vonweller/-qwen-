@@ -17,6 +17,7 @@ from src.ui.main_window_styles import MAIN_WINDOW_STYLE
 from src.core.brush_controller import BrushController
 from src.core.brush_position_monitor import BrushPositionMonitor
 from src.ui.position_status_widget import PositionStatusWidget
+from src.ui.hand_face_coverage_widget import HandFaceCoverageWidget
 from src.utils.config_manager import ConfigManager
 
 class MainWindow(QMainWindow):
@@ -216,8 +217,12 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self.camera_widget, 2)  # 占2/3空间
         
         # 位置状态显示组件
-        self.position_status_widget = PositionStatusWidget()
-        right_layout.addWidget(self.position_status_widget, 0)  # 固定高度
+        # 手掌-脸部覆盖检测组件（替换原有的位置状态组件）
+        self.hand_face_coverage_widget = HandFaceCoverageWidget()
+        right_layout.addWidget(self.hand_face_coverage_widget, 0)  # 固定高度
+        
+        # 连接覆盖检测信号
+        self.hand_face_coverage_widget.coverage_status_changed.connect(self.on_coverage_status_changed)
         
         # 分析结果显示区域
         self.create_analysis_display(right_layout)
@@ -664,9 +669,11 @@ class MainWindow(QMainWindow):
     def on_pose_detected(self, pose_analysis):
         """处理姿态检测结果"""
         try:
-            print(f"收到姿态检测结果: {pose_analysis}")
+            # 更新手掌-脸部覆盖检测UI
+            if hasattr(self, 'hand_face_coverage_widget'):
+                self.hand_face_coverage_widget.update_coverage_status(pose_analysis)
             
-            # 可以在这里添加姿态分析的逻辑
+            # 可以在这里添加其他姿态分析的逻辑
             # 例如：检测刷牙姿势是否正确，手臂位置等
             
             # 更新界面显示姿态信息（可选）
@@ -676,6 +683,22 @@ class MainWindow(QMainWindow):
                 
         except Exception as e:
             print(f"姿态检测结果处理错误: {e}")
+    
+    def on_coverage_status_changed(self, is_covered, confidence, message):
+        """处理覆盖状态变化"""
+        try:
+            print(f"覆盖状态变化: 正确覆盖={is_covered}, 置信度={confidence:.2f}, 消息={message}")
+            
+            # 可以在这里添加基于覆盖状态的逻辑
+            # 例如：记录刷牙质量、调整评分等
+            
+            # 如果正在刷牙，可以将覆盖状态传递给刷牙控制器
+            if hasattr(self, 'brush_controller') and self.brush_controller:
+                # 可以添加覆盖状态到刷牙控制器的分析中
+                pass
+                
+        except Exception as e:
+            print(f"覆盖状态处理错误: {e}")
     
     def on_position_status_changed(self, is_correct_position, confidence, message):
         """处理位置状态变化"""

@@ -15,16 +15,16 @@
     ]
   },
   "rating": {
-    "total_stars": 119,
+    "total_stars": 124,
     "current_rank": {
       "name": "青铜",
       "min_stars": 50,
       "color": "#CD7F32",
       "icon": "🥉"
     },
-    "consecutive_days": 2,
-    "last_brush_date": "2025-08-13",
-    "daily_bonus": 2,
+    "consecutive_days": 0,
+    "last_brush_date": "2025-08-14",
+    "daily_bonus": 0,
     "last_score": 100,
     "last_earned_stars": 5,
     "last_penalty_stars": 0

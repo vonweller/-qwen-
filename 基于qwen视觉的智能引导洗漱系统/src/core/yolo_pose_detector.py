@@ -195,7 +195,10 @@ class YOLOPoseDetector:
                 'hands_detected': False,
                 'head_angle': 0,
                 'hand_positions': [],
-                'overall_confidence': 0
+                'overall_confidence': 0,
+                'hand_face_coverage': False,
+                'coverage_confidence': 0.0,
+                'coverage_details': {}
             }
         
         analysis = {
@@ -203,15 +206,33 @@ class YOLOPoseDetector:
             'hands_detected': False,
             'head_angle': 0,
             'hand_positions': [],
-            'overall_confidence': float(np.mean(keypoints[:, 2]))
+            'overall_confidence': float(np.mean(keypoints[:, 2])),
+            'hand_face_coverage': False,
+            'coverage_confidence': 0.0,
+            'coverage_details': {}
         }
         
         # 检测头部关键点
         nose = keypoints[0] if keypoints[0][2] > confidence_threshold else None
         left_eye = keypoints[1] if keypoints[1][2] > confidence_threshold else None
         right_eye = keypoints[2] if keypoints[2][2] > confidence_threshold else None
+        left_ear = keypoints[3] if keypoints[3][2] > confidence_threshold else None
+        right_ear = keypoints[4] if keypoints[4][2] > confidence_threshold else None
         
-        if nose is not None or (left_eye is not None and right_eye is not None):
+        # 定义脸部区域
+        face_keypoints = []
+        if nose is not None:
+            face_keypoints.append(nose)
+        if left_eye is not None:
+            face_keypoints.append(left_eye)
+        if right_eye is not None:
+            face_keypoints.append(right_eye)
+        if left_ear is not None:
+            face_keypoints.append(left_ear)
+        if right_ear is not None:
+            face_keypoints.append(right_ear)
+        
+        if len(face_keypoints) >= 2:
             analysis['head_detected'] = True
             
             # 计算头部角度
@@ -220,27 +241,159 @@ class YOLOPoseDetector:
                 dy = right_eye[1] - left_eye[1]
                 analysis['head_angle'] = np.degrees(np.arctan2(dy, dx))
         
-        # 检测手部关键点
-        left_wrist = keypoints[9] if keypoints[9][2] > confidence_threshold else None
-        right_wrist = keypoints[10] if keypoints[10][2] > confidence_threshold else None
+        # 检测手部关键点（包含肘部和肩部用于更准确的手掌位置估算）
+        left_shoulder = keypoints[5] if len(keypoints) > 5 and keypoints[5][2] > confidence_threshold else None
+        right_shoulder = keypoints[6] if len(keypoints) > 6 and keypoints[6][2] > confidence_threshold else None
+        left_elbow = keypoints[7] if len(keypoints) > 7 and keypoints[7][2] > confidence_threshold else None
+        right_elbow = keypoints[8] if len(keypoints) > 8 and keypoints[8][2] > confidence_threshold else None
+        left_wrist = keypoints[9] if len(keypoints) > 9 and keypoints[9][2] > confidence_threshold else None
+        right_wrist = keypoints[10] if len(keypoints) > 10 and keypoints[10][2] > confidence_threshold else None
+        
+        # 估算手掌位置（基于手腕和肘部）
+        hand_positions = []
         
         if left_wrist is not None:
-            analysis['hand_positions'].append({
+            hand_pos = self._estimate_hand_position(left_wrist, left_elbow, 'left')
+            hand_positions.append({
                 'side': 'left',
-                'position': (float(left_wrist[0]), float(left_wrist[1])),
+                'wrist_position': (float(left_wrist[0]), float(left_wrist[1])),
+                'hand_position': hand_pos,
                 'confidence': float(left_wrist[2])
             })
         
         if right_wrist is not None:
-            analysis['hand_positions'].append({
+            hand_pos = self._estimate_hand_position(right_wrist, right_elbow, 'right')
+            hand_positions.append({
                 'side': 'right',
-                'position': (float(right_wrist[0]), float(right_wrist[1])),
+                'wrist_position': (float(right_wrist[0]), float(right_wrist[1])),
+                'hand_position': hand_pos,
                 'confidence': float(right_wrist[2])
             })
         
-        analysis['hands_detected'] = len(analysis['hand_positions']) > 0
+        analysis['hand_positions'] = hand_positions
+        analysis['hands_detected'] = len(hand_positions) > 0
+        
+        # 检查手掌是否覆盖脸部区域
+        if analysis['head_detected'] and analysis['hands_detected']:
+            coverage_result = self._check_hand_face_coverage(face_keypoints, hand_positions, keypoints, confidence_threshold)
+            analysis.update(coverage_result)
         
         return analysis
+    
+    def _estimate_hand_position(self, wrist, elbow, side):
+        """
+        基于手腕位置估算手掌中心位置（简化版本）
+        
+        Args:
+            wrist: 手腕关键点 (x, y, confidence)
+            elbow: 肘部关键点 (x, y, confidence) 或 None
+            side: 'left' 或 'right'
+            
+        Returns:
+            tuple: 估算的手掌中心位置 (x, y)
+        """
+        # 简化处理：直接使用手腕位置作为手掌位置
+        # 这样更准确，因为手腕就在手掌附近
+        return (float(wrist[0]), float(wrist[1]))
+    
+    def _check_hand_face_coverage(self, face_keypoints, hand_positions, keypoints, confidence_threshold):
+        """
+        检查手掌是否覆盖脸部区域（基于手掌高于肩膀的判断）
+        
+        Args:
+            face_keypoints: 脸部关键点列表
+            hand_positions: 手部位置列表
+            keypoints: 完整的关键点数组
+            confidence_threshold: 置信度阈值
+            
+        Returns:
+            dict: 覆盖检测结果
+        """
+        if not face_keypoints or not hand_positions:
+            return {
+                'hand_face_coverage': False,
+                'coverage_confidence': 0.0,
+                'coverage_details': {'reason': 'no_face_or_hands'}
+            }
+        
+        # 计算脸部中心点（使用鼻子或眼睛）
+        face_center_x = 0
+        face_center_y = 0
+        valid_points = 0
+        
+        for kp in face_keypoints:
+            face_center_x += kp[0]
+            face_center_y += kp[1]
+            valid_points += 1
+        
+        if valid_points == 0:
+            return {
+                'hand_face_coverage': False,
+                'coverage_confidence': 0.0,
+                'coverage_details': {'reason': 'no_valid_face_points'}
+            }
+        
+        face_center_x /= valid_points
+        face_center_y /= valid_points
+        
+        # 获取肩膀关键点用于高度比较
+        left_shoulder = keypoints[5] if len(keypoints) > 5 and keypoints[5][2] > confidence_threshold else None
+        right_shoulder = keypoints[6] if len(keypoints) > 6 and keypoints[6][2] > confidence_threshold else None
+        
+        # 计算肩膀平均高度
+        shoulder_y = None
+        if left_shoulder is not None and right_shoulder is not None:
+            shoulder_y = (left_shoulder[1] + right_shoulder[1]) / 2
+        elif left_shoulder is not None:
+            shoulder_y = left_shoulder[1]
+        elif right_shoulder is not None:
+            shoulder_y = right_shoulder[1]
+        
+        print(f"DEBUG: 脸部中心 ({face_center_x:.1f}, {face_center_y:.1f})")
+        if shoulder_y is not None:
+            print(f"DEBUG: 肩膀高度: {shoulder_y:.1f}")
+        
+        # 简化的覆盖检测：检查手掌是否高于肩膀
+        max_confidence = 0.0
+        covering_hands = []
+        
+        for hand in hand_positions:
+            hand_x, hand_y = hand['hand_position']
+            
+            print(f"DEBUG: {hand['side']}手位置 ({hand_x:.1f}, {hand_y:.1f})")
+            
+            # 判断手掌是否高于肩膀（y坐标更小表示更高）
+            if shoulder_y is not None and hand_y < shoulder_y:
+                # 手掌高于肩膀，计算置信度
+                height_diff = shoulder_y - hand_y
+                # 基于高度差计算置信度，高度差越大置信度越高
+                confidence = min(1.0, height_diff / 50.0)  # 50像素高度差为满分
+                confidence = max(0.5, confidence)  # 最低0.5置信度
+                
+                print(f"DEBUG: {hand['side']}手高于肩膀 {height_diff:.1f}像素, 置信度: {confidence:.3f}")
+                
+                if confidence > max_confidence:
+                    max_confidence = confidence
+                
+                covering_hands.append(hand['side'])
+            else:
+                print(f"DEBUG: {hand['side']}手未高于肩膀")
+        
+        # 判断是否满足覆盖条件
+        is_covered = max_confidence > 0.4  # 设置合理阈值
+        
+        print(f"DEBUG: 最大置信度: {max_confidence:.3f}, 是否覆盖: {is_covered}")
+        
+        return {
+            'hand_face_coverage': is_covered,
+            'coverage_confidence': float(max_confidence),
+            'coverage_details': {
+                'covering_hands': covering_hands,
+                'face_center': (float(face_center_x), float(face_center_y)),
+                'shoulder_height': float(shoulder_y) if shoulder_y is not None else None,
+                'max_confidence': float(max_confidence)
+            }
+        }
     
     def is_available(self):
         """检查检测器是否可用"""
